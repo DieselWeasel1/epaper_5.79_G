@@ -224,10 +224,17 @@ void EPD5in79G::display_frame_() {
   }
 
   // RAM2 - right half
+  // NOTE: the original vendor source this was ported from looped over the
+  // full EPD_HEIGHT here (double-writing this bank, since each iteration
+  // already writes a top+bottom row pair). That overflows the bank's actual
+  // row count and wraps the panel's internal address counter, which shows
+  // up as the whole image rolling vertically and left-half content bleeding
+  // sideways. Looping over EPD_HEIGHT/2, mirroring RAM1, sends exactly one
+  // bank's worth of data (Width bytes x Height rows total) and fixes it.
   this->send_command_(0xA2);
   this->send_data_(0x02);
   this->send_command_(0x10);
-  for (uint16_t j = 0; j < EPD_HEIGHT; j++) {
+  for (uint16_t j = 0; j < EPD_HEIGHT / 2; j++) {
     for (uint16_t bx = 0; bx < RAM_BANK_BYTE_WIDTH; bx++) {
       this->send_data_(this->pack_byte_(j, bx + RAM_BANK_BYTE_WIDTH));
     }
