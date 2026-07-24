@@ -54,10 +54,10 @@ void EPD5in79G::update() {
   uint32_t t0 = millis();
   this->reset_();
   this->init_sequence_();
-  ESP_LOGD(TAG, "Init sequence took %u ms", millis() - t0);
+  ESP_LOGD(TAG, "Init sequence took %u ms", (unsigned) (millis() - t0));
   uint32_t t1 = millis();
   this->display_frame_();
-  ESP_LOGD(TAG, "Frame display (incl. panel refresh) took %u ms", millis() - t1);
+  ESP_LOGD(TAG, "Frame display (incl. panel refresh) took %u ms", (unsigned) (millis() - t1));
   this->deep_sleep_();
 }
 
