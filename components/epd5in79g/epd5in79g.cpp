@@ -210,29 +210,11 @@ void EPD5in79G::fill(Color color) {
 void EPD5in79G::display_frame_() {
   ESP_LOGD(TAG, "Sending frame to display...");
 
-  // RAM1 - left half
+  // RAM1 - this bank is physically the RIGHT half of the screen (see
+  // Epd::Display_part(): xstart>395 writes real data to RAM1 and blanks
+  // RAM2), so it gets image columns 396-791.
   this->send_command_(0xA2);
   this->send_data_(0x01);
-  this->send_command_(0x10);
-  for (uint16_t j = 0; j < EPD_HEIGHT / 2; j++) {
-    for (uint16_t bx = 0; bx < RAM_BANK_BYTE_WIDTH; bx++) {
-      this->send_data_(this->pack_byte_(j, bx));
-    }
-    for (uint16_t bx = 0; bx < RAM_BANK_BYTE_WIDTH; bx++) {
-      this->send_data_(this->pack_byte_(EPD_HEIGHT - j - 1, bx));
-    }
-  }
-
-  // RAM2 - right half
-  // NOTE: the original vendor source this was ported from looped over the
-  // full EPD_HEIGHT here (double-writing this bank, since each iteration
-  // already writes a top+bottom row pair). That overflows the bank's actual
-  // row count and wraps the panel's internal address counter, which shows
-  // up as the whole image rolling vertically and left-half content bleeding
-  // sideways. Looping over EPD_HEIGHT/2, mirroring RAM1, sends exactly one
-  // bank's worth of data (Width bytes x Height rows total) and fixes it.
-  this->send_command_(0xA2);
-  this->send_data_(0x02);
   this->send_command_(0x10);
   for (uint16_t j = 0; j < EPD_HEIGHT / 2; j++) {
     for (uint16_t bx = 0; bx < RAM_BANK_BYTE_WIDTH; bx++) {
@@ -240,6 +222,21 @@ void EPD5in79G::display_frame_() {
     }
     for (uint16_t bx = 0; bx < RAM_BANK_BYTE_WIDTH; bx++) {
       this->send_data_(this->pack_byte_(EPD_HEIGHT - j - 1, bx + RAM_BANK_BYTE_WIDTH));
+    }
+  }
+
+  // RAM2 - this bank is physically the LEFT half of the screen (see
+  // Epd::Display_part(): xend<396 writes real data to RAM2 and blanks
+  // RAM1), so it gets image columns 0-395.
+  this->send_command_(0xA2);
+  this->send_data_(0x02);
+  this->send_command_(0x10);
+  for (uint16_t j = 0; j < EPD_HEIGHT / 2; j++) {
+    for (uint16_t bx = 0; bx < RAM_BANK_BYTE_WIDTH; bx++) {
+      this->send_data_(this->pack_byte_(j, bx));
+    }
+    for (uint16_t bx = 0; bx < RAM_BANK_BYTE_WIDTH; bx++) {
+      this->send_data_(this->pack_byte_(EPD_HEIGHT - j - 1, bx));
     }
   }
 
