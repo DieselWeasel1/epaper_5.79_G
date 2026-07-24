@@ -21,7 +21,7 @@ CONFIG_SCHEMA = cv.All(
             cv.Optional(CONF_RESET_PIN): pins.gpio_output_pin_schema,
         }
     )
-    .extend(cv.polling_component_schema("60s"))
+    .extend(cv.polling_component_schema("180s"))
     .extend(spi.spi_device_schema(cs_pin_required=True)),
 )
 

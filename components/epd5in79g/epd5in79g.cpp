@@ -46,7 +46,14 @@ size_t EPD5in79G::get_buffer_length_() { return (size_t) EPD_WIDTH * (size_t) EP
 
 void EPD5in79G::update() {
   this->do_update_();
+  // The panel must be re-initialized before every refresh once it has been
+  // put to sleep (sleeping causes it to ignore new image data until
+  // init_sequence_() runs again), and should be put back to sleep
+  // afterward rather than left powered/high-voltage between refreshes.
+  this->reset_();
+  this->init_sequence_();
   this->display_frame_();
+  this->deep_sleep_();
 }
 
 // --- low level SPI helpers, ported from Epd::SendCommand / Epd::SendData ---
