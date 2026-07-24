@@ -1,6 +1,7 @@
 #include "epd5in79g.h"
 #include "esphome/core/log.h"
 #include "esphome/core/hal.h"
+#include "esphome/core/application.h"
 
 namespace esphome {
 namespace epd5in79g {
@@ -208,12 +209,14 @@ void EPD5in79G::fill(Color color) {
   memset(this->buffer_, idx, this->get_buffer_length_());
 }
 
-// Ported from Epd::Display(). RAM1 holds the left half of the panel
-// (columns 0-395), RAM2 the right half (columns 396-791), selected via
-// the 0xA2 command exactly as in the vendor driver. Loop bounds and row
-// ordering (including RAM2's full-height double pass) are kept identical
-// to the reference implementation rather than "simplified", since that
-// reference is the version confirmed working on this panel.
+// Ported from Epd::Display(). RAM1 is physically the right half of the
+// panel and RAM2 the left half (see Epd::Display_part()'s xstart/xend
+// branching), selected via the 0xA2 command exactly as in the vendor
+// driver. Each bank's loop sends exactly one bank's worth of data
+// (Width bytes x Height rows, via Height/2 iterations each writing a
+// top+bottom row pair) rather than the vendor source's mismatched loop
+// bounds, which overflowed one bank and caused the panel's internal
+// address counter to wrap.
 void EPD5in79G::display_frame_() {
   ESP_LOGD(TAG, "Sending frame to display...");
 
@@ -224,6 +227,7 @@ void EPD5in79G::display_frame_() {
   this->send_data_(0x01);
   this->send_command_(0x10);
   for (uint16_t j = 0; j < EPD_HEIGHT / 2; j++) {
+    App.feed_wdt();
     for (uint16_t bx = 0; bx < RAM_BANK_BYTE_WIDTH; bx++) {
       this->send_data_(this->pack_byte_(j, bx + RAM_BANK_BYTE_WIDTH));
     }
@@ -239,6 +243,7 @@ void EPD5in79G::display_frame_() {
   this->send_data_(0x02);
   this->send_command_(0x10);
   for (uint16_t j = 0; j < EPD_HEIGHT / 2; j++) {
+    App.feed_wdt();
     for (uint16_t bx = 0; bx < RAM_BANK_BYTE_WIDTH; bx++) {
       this->send_data_(this->pack_byte_(j, bx));
     }
