@@ -51,9 +51,13 @@ void EPD5in79G::update() {
   // put to sleep (sleeping causes it to ignore new image data until
   // init_sequence_() runs again), and should be put back to sleep
   // afterward rather than left powered/high-voltage between refreshes.
+  uint32_t t0 = millis();
   this->reset_();
   this->init_sequence_();
+  ESP_LOGD(TAG, "Init sequence took %u ms", millis() - t0);
+  uint32_t t1 = millis();
   this->display_frame_();
+  ESP_LOGD(TAG, "Frame display (incl. panel refresh) took %u ms", millis() - t1);
   this->deep_sleep_();
 }
 
@@ -77,6 +81,7 @@ void EPD5in79G::send_data_(uint8_t data) {
 void EPD5in79G::wait_busy_high_() {
   uint32_t start = millis();
   while (this->busy_pin_->digital_read() == false) {
+    App.feed_wdt();
     delay(5);
     if (millis() - start > 30000) {
       ESP_LOGW(TAG, "Busy wait timed out");
